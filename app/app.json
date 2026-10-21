@@ -1,1 +1,23 @@
-{"expo":{"name":"HemoRed","slug":"hemored","version":"1.0.0","orientation":"default","scheme":"hemored","web":{"bundler":"metro","output":"static"},"plugins":["expo-router"],"experiments":{"typedRoutes":true}}}
+{
+  "expo": {
+    "name": "HemoRed",
+    "slug": "hemored",
+    "version": "1.0.0",
+    "orientation": "default",
+    "scheme": "hemored",
+    "android": {
+      "package": "com.cun.hemored",
+      "adaptiveIcon": {
+        "backgroundColor": "#dc2626"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
