@@ -6,7 +6,7 @@ MVP responsive para gestión operativa de inventario sanguíneo, solicitudes tra
 
 - Frontend: React + TypeScript + Vite
 - Backend: Node.js + TypeScript + Fastify
-- Persistencia preparada: MongoDB/Mongoose
+- Persistencia preparada: MongoDB/Mongoose (soporta local y MongoDB Atlas)
 - Arquitectura: monolito modular orientado a eventos
 - Modelo de desarrollo: incremental
 
@@ -20,7 +20,7 @@ pnpm --filter hemored-server dev
 pnpm --filter hemored-web dev
 ```
 
-Abre `http://localhost:5173`. La API corre en `http://localhost:4000` y usa datos sintéticos en modo demo por defecto.
+Abre `http://localhost:5173`. La API corre en `http://localhost:4000`.
 
 ### Cliente universal Native
 
@@ -33,13 +33,27 @@ pnpm --filter hemored-app web
 
 Abre `http://localhost:8081`. Para teléfono físico, configura `app/.env` con la IP LAN del equipo como `EXPO_PUBLIC_API_URL` y ejecuta `pnpm --filter hemored-app start`.
 
-Para levantar MongoDB local:
+### Conexión a Base de Datos (MongoDB Atlas o Local)
+
+Para conectar con MongoDB Atlas, configura el archivo `.env` en la raíz del proyecto (o en `server/.env`):
+
+```env
+MONGODB_URI=mongodb+srv://Arquitectura:Arquitectura2026@cluster0.xykjocm.mongodb.net/hemored?retryWrites=true&w=majority
+PORT=4000
+DEMO_MODE=false
+```
+
+Para probar la conexión a MongoDB Atlas directamente:
+
+```powershell
+pnpm --filter hemored-server test:mongo
+```
+
+Si prefieres levantar MongoDB localmente con Docker:
 
 ```powershell
 docker compose up -d mongodb
 ```
-
-La conexión queda preparada con `MONGODB_URI`; el MVP mantiene el store demo como fuente activa para que la interfaz sea usable sin infraestructura externa.
 
 ## Verificación
 

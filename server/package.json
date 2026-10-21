@@ -1,1 +1,20 @@
-{"name":"hemored-server","type":"module","scripts":{"test":"node --import tsx --test src/**/*.test.ts","dev":"node --import tsx src/index.ts","build":"tsc -p tsconfig.json"},"dependencies":{"@fastify/cors":"^10.0.1","fastify":"^5.0.0","mongoose":"^8.7.0"},"devDependencies":{"@types/node":"^22.10.0","tsx":"^4.19.2","typescript":"^5.6.3"}}
+{
+  "name": "hemored-server",
+  "type": "module",
+  "scripts": {
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "test:mongo": "node --import tsx src/test-connection.ts",
+    "dev": "node --import tsx src/index.ts",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "fastify": "^5.0.0",
+    "mongoose": "^8.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

@@ -16,7 +16,8 @@ app/dist/
 .env.*
 !.env.example
 
-# Logs and local tooling
+# Logs, binaries and local tooling
 *.log
+*.exe
 .DS_Store
 Thumbs.db

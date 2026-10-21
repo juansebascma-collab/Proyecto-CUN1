@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "pnpm --parallel --filter hemored-server --filter hemored-web dev",
     "test": "pnpm -r test",
+    "test:mongo": "pnpm --filter hemored-server test:mongo",
     "build": "pnpm -r build"
   },
   "devDependencies": {
