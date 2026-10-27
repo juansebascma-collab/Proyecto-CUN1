@@ -19,6 +19,7 @@ const DonorSchema = new Schema<Donor>(
   {
     id: { type: String, required: true, unique: true },
     name: { type: String, required: true },
+    document: { type: String },
     documentMasked: { type: String, required: true },
     bloodGroup: { type: String, required: true },
     phone: { type: String, required: true },

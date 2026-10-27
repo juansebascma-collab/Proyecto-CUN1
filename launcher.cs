@@ -2,64 +2,25 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Runtime.InteropServices;
 using System.Threading;
+using System.Windows.Forms;
 
 class Program
 {
     private static Process pnpmProcess = null;
+    private static Process windowProcess = null;
     private static bool isCleaningUp = false;
 
-    [DllImport("Kernel32")]
-    private static extern bool SetConsoleCtrlHandler(EventHandler handler, bool add);
-    private delegate bool EventHandler(CtrlType sig);
-    private static EventHandler handler;
-
-    private enum CtrlType
-    {
-        CTRL_C_EVENT = 0,
-        CTRL_BREAK_EVENT = 1,
-        CTRL_CLOSE_EVENT = 2,
-        CTRL_LOGOFF_EVENT = 5,
-        CTRL_SHUTDOWN_EVENT = 6
-    }
-
-    private static bool ConsoleCtrlCheck(CtrlType sig)
-    {
-        KillProcessTree();
-        return false;
-    }
-
+    [STAThread]
     static void Main(string[] args)
     {
-        try { Console.Title = "HemoRed - Red Vital Hospitalaria & Banco de Sangre"; } catch {}
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch {}
-
-        try
-        {
-            handler = new EventHandler(ConsoleCtrlCheck);
-            SetConsoleCtrlHandler(handler, true);
-        }
-        catch {}
-
-        Console.CancelKeyPress += (s, e) => {
-            e.Cancel = true;
-            KillProcessTree();
-            Environment.Exit(0);
-        };
-
-        AppDomain.CurrentDomain.ProcessExit += (s, e) => KillProcessTree();
-
-        PrintBanner();
+        AppDomain.CurrentDomain.ProcessExit += (s, e) => KillAllProcesses();
 
         string projectDir = @"C:\Users\juan.cardenas_netcom\Documents\GitHub\Proyecto-CUN1";
         if (!Directory.Exists(projectDir))
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("[Error] No se encontró el proyecto en: " + projectDir);
-            Console.ResetColor();
-            Console.WriteLine("Presiona cualquier tecla para salir...");
-            try { Console.ReadKey(); } catch {}
+            MessageBox.Show("No se encontró el directorio del proyecto en:\n" + projectDir,
+                "HemoRed - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
@@ -80,98 +41,180 @@ class Program
             pnpmCmd = Path.Combine(wingetNode, "pnpm.cmd");
         }
 
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("-> Iniciando servicios de HemoRed...");
-        Console.WriteLine("   • Servidor API:    http://localhost:4000");
-        Console.WriteLine("   • Portal Web:      http://localhost:5173");
-        Console.WriteLine("   • Base de datos:   MongoDB Atlas (con fallback automático)");
-        Console.WriteLine();
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine("   (El navegador se abrirá automáticamente en cuanto los servicios estén listos)");
-        Console.WriteLine("   (Para detener la aplicación, cierra esta ventana o presiona Ctrl+C)");
-        Console.WriteLine("   -----------------------------------------------------------------");
-        Console.ResetColor();
+        // 1. Comprobar si los servicios ya están ejecutándose
+        bool isAlreadyRunning = CheckUrl("http://127.0.0.1:5173");
 
-        // Lanzar hilo en segundo plano que espere a que el puerto 5173 esté listo para abrir el navegador
-        Thread browserThread = new Thread(() =>
+        if (!isAlreadyRunning)
         {
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo();
+                psi.FileName = "cmd.exe";
+                psi.Arguments = string.Format("/c \"\"{0}\" dev\"", pnpmCmd);
+                psi.WorkingDirectory = projectDir;
+                psi.CreateNoWindow = true;
+                psi.UseShellExecute = false;
+                psi.WindowStyle = ProcessWindowStyle.Hidden;
+
+                pnpmProcess = Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error iniciando el servidor de HemoRed:\n" + ex.Message,
+                    "HemoRed - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // Esperar hasta que el servidor web responda
             bool ready = false;
             for (int i = 0; i < 60; i++)
             {
                 Thread.Sleep(500);
-                if (pnpmProcess == null || pnpmProcess.HasExited) return;
-
-                try
+                if (CheckUrl("http://127.0.0.1:5173"))
                 {
-                    HttpWebRequest req = (HttpWebRequest)WebRequest.Create("http://localhost:5173");
-                    req.Timeout = 1000;
-                    req.Method = "GET";
-                    using (HttpWebResponse res = (HttpWebResponse)req.GetResponse())
-                    {
-                        if (res.StatusCode == HttpStatusCode.OK)
-                        {
-                            ready = true;
-                            break;
-                        }
-                    }
+                    ready = true;
+                    break;
                 }
-                catch {}
             }
 
-            if (ready)
+            if (!ready)
             {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("\n[✔] ¡HemoRed listo! Abriendo http://localhost:5173 en tu navegador...");
-                Console.ResetColor();
-                OpenBrowser("http://localhost:5173");
-            }
-        });
-        browserThread.IsBackground = true;
-        browserThread.Start();
-
-        try
-        {
-            ProcessStartInfo psi = new ProcessStartInfo();
-            psi.FileName = "cmd.exe";
-            psi.Arguments = string.Format("/c \"\"{0}\" dev\"", pnpmCmd);
-            psi.WorkingDirectory = projectDir;
-            psi.UseShellExecute = false;
-
-            pnpmProcess = Process.Start(psi);
-            if (pnpmProcess != null)
-            {
-                pnpmProcess.WaitForExit();
+                MessageBox.Show("El servidor de HemoRed tardó demasiado en responder.\nIniciando ventana de todos modos...",
+                    "HemoRed", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
-        catch (Exception ex)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("[Error] Error al ejecutar el proceso: " + ex.Message);
-            Console.ResetColor();
-        }
-        finally
-        {
-            KillProcessTree();
-        }
+
+        // 2. Abrir la ventana de la aplicación nativa
+        LaunchNativeApp(projectDir, wingetNode);
     }
 
-    private static void OpenBrowser(string url)
+    private static bool CheckUrl(string url)
     {
         try
         {
+            HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
+            req.Timeout = 800;
+            req.Method = "GET";
+            using (HttpWebResponse res = (HttpWebResponse)req.GetResponse())
+            {
+                return (int)res.StatusCode >= 200 && (int)res.StatusCode < 400;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void LaunchNativeApp(string projectDir, string wingetNode)
+    {
+        try
+        {
+            // Prioridad 1: Electron (Aplicación de escritorio nativa)
+            string electronCmd = Path.Combine(projectDir, @"node_modules\.bin\electron.cmd");
+            string electronExe = null;
+
+            string pnpmDir = Path.Combine(projectDir, @"node_modules\.pnpm");
+            if (Directory.Exists(pnpmDir))
+            {
+                string[] match = Directory.GetFiles(pnpmDir, "electron.exe", SearchOption.AllDirectories);
+                if (match != null && match.Length > 0)
+                {
+                    electronExe = match[0];
+                }
+            }
+
+            if (!string.IsNullOrEmpty(electronExe) && File.Exists(electronExe))
+            {
+                ProcessStartInfo psi = new ProcessStartInfo();
+                psi.FileName = electronExe;
+                psi.Arguments = ".";
+                psi.WorkingDirectory = projectDir;
+                psi.UseShellExecute = false;
+
+                windowProcess = Process.Start(psi);
+                if (windowProcess != null)
+                {
+                    windowProcess.WaitForExit();
+                    KillAllProcesses();
+                    return;
+                }
+            }
+            else if (File.Exists(electronCmd))
+            {
+                ProcessStartInfo psi = new ProcessStartInfo();
+                psi.FileName = "cmd.exe";
+                psi.Arguments = string.Format("/c \"\"{0}\" .\"", electronCmd);
+                psi.WorkingDirectory = projectDir;
+                psi.CreateNoWindow = true;
+                psi.UseShellExecute = false;
+
+                windowProcess = Process.Start(psi);
+                if (windowProcess != null)
+                {
+                    windowProcess.WaitForExit();
+                    KillAllProcesses();
+                    return;
+                }
+            }
+
+            // Prioridad 2: Standalone Desktop Window vía Microsoft Edge App Mode
+            string edgeExe = @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe";
+            if (!File.Exists(edgeExe))
+            {
+                edgeExe = @"C:\Program Files\Microsoft\Edge\Application\msedge.exe";
+            }
+
+            string chromeExe = @"C:\Program Files\Google\Chrome\Application\chrome.exe";
+            if (!File.Exists(chromeExe))
+            {
+                chromeExe = @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe";
+            }
+
+            string browserApp = File.Exists(edgeExe) ? edgeExe : (File.Exists(chromeExe) ? chromeExe : null);
+
+            if (!string.IsNullOrEmpty(browserApp))
+            {
+                string userProfile = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    @"HemoRed\Profile"
+                );
+
+                ProcessStartInfo psi = new ProcessStartInfo();
+                psi.FileName = browserApp;
+                psi.Arguments = string.Format(
+                    "--app=\"http://localhost:5173\" --user-data-dir=\"{0}\" --window-size=1280,820 --app-id=HemoRed",
+                    userProfile
+                );
+                psi.UseShellExecute = false;
+
+                windowProcess = Process.Start(psi);
+                if (windowProcess != null)
+                {
+                    windowProcess.WaitForExit();
+                    KillAllProcesses();
+                    return;
+                }
+            }
+
+            // Prioridad 3: Respaldo estándar de navegación
             Process.Start(new ProcessStartInfo
             {
-                FileName = url,
+                FileName = "http://localhost:5173",
                 UseShellExecute = true
             });
         }
         catch (Exception ex)
         {
-            Console.WriteLine("No se pudo abrir el navegador automáticamente: " + ex.Message);
+            MessageBox.Show("Error abriendo la interfaz:\n" + ex.Message, "HemoRed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            KillAllProcesses();
         }
     }
 
-    private static void KillProcessTree()
+    private static void KillAllProcesses()
     {
         if (isCleaningUp) return;
         isCleaningUp = true;
@@ -190,24 +233,5 @@ class Program
             }
             catch {}
         }
-    }
-
-    private static void PrintBanner()
-    {
-        try { Console.Clear(); } catch {}
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine(@"
-    ██╗  ██╗███████╗███╗   ███╗ ██████╗ ██████╗ ███████╗██████╗ 
-    ██║  ██║██╔════╝████╗ ████║██╔═══██╗██╔══██╗██╔════╝██╔══██╗
-    ███████║█████╗  ██╔████╔██║██║   ██║██████╔╝█████╗  ██║  ██║
-    ██╔══██║██╔══╝  ██║╚██╔╝██║██║   ██║██╔══██╗██╔══╝  ██║  ██║
-    ██║  ██║███████╗██║ ╚═╝ ██║╚██████╔╝██║  ██║███████╗██████╔╝
-    ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═════╝ 
-        ");
-        Console.ForegroundColor = ConsoleColor.DarkRed;
-        Console.WriteLine("   ✚ Red Vital Hospitalaria & Sistema Operativo de Banco de Sangre");
-        Console.ResetColor();
-        Console.WriteLine("   -----------------------------------------------------------------");
-        Console.WriteLine();
     }
 }

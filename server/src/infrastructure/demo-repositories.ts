@@ -1,4 +1,4 @@
-import { BloodUnit, Donor, TransfusionRequest, DomainEvent } from '../domain/contracts.js';
+import { BloodUnit, Donor, TransfusionRequest, DomainEvent, resolveDonorDocument } from '../domain/contracts.js';
 
 const future = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
 
@@ -40,6 +40,7 @@ export class DemoStore {
     {
       id: 'd1',
       name: 'María Fernanda López',
+      document: '1020304821',
       documentMasked: '*** *** 4821',
       bloodGroup: 'O+',
       phone: '300 555 0198',
@@ -47,6 +48,7 @@ export class DemoStore {
     {
       id: 'd2',
       name: 'Carlos Andrés Ruiz',
+      document: '1030407730',
       documentMasked: '*** *** 7730',
       bloodGroup: 'A-',
       phone: '310 555 0142',
@@ -78,11 +80,18 @@ export class DemoStore {
   }
 
   async getDonors(): Promise<Donor[]> {
-    return this.donors;
+    return this.donors.map((d) => ({
+      ...d,
+      document: resolveDonorDocument(d),
+    }));
   }
 
   async addDonor(donor: Donor): Promise<void> {
-    this.donors.push(donor);
+    const full = resolveDonorDocument(donor);
+    this.donors.push({
+      ...donor,
+      document: full,
+    });
   }
 
   async getRequests(): Promise<TransfusionRequest[]> {

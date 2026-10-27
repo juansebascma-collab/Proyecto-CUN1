@@ -545,3 +545,104 @@ td {
     width: 100%;
   }
 }
+
+/* Estilos para Ventanas Modales y Vistas de Detalle */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 32, 55, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 540px;
+  box-shadow: 0 20px 45px rgba(13, 32, 55, 0.28);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  animation: slideUp 0.2s ease-out;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #edf1f5;
+  background: #fafbfc;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 17px;
+  color: #17253d;
+  font-weight: 700;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #8c98aa;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.modal-close-btn:hover {
+  background: #eef2f6;
+  color: #17253d;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.detail-item {
+  display: grid;
+  gap: 4px;
+}
+
+.detail-item.full-width {
+  grid-column: span 2;
+}
+
+.detail-label {
+  font-size: 11px;
+  color: #8c98aa;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #17253d;
+  font-weight: 600;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { DemoStore } from '../infrastructure/demo-repositories.js';
 import { EventBus } from '../application/event-bus.js';
-import { createDomainEvent } from '../domain/contracts.js';
+import { createDomainEvent, resolveDonorDocument } from '../domain/contracts.js';
 import { calculateInventorySummary, validateUnit } from '../domain/inventory.js';
 import { DomainEventModel } from '../infrastructure/mongo.js';
 
@@ -56,7 +56,11 @@ export function buildApp(store: any = new DemoStore(), bus = new EventBus()) {
   });
 
   app.get('/api/donors', async () => {
-    return store.getDonors ? await store.getDonors() : store.donors;
+    const list = store.getDonors ? await store.getDonors() : store.donors;
+    return list.map((d: any) => ({
+      ...d,
+      document: resolveDonorDocument(d),
+    }));
   });
 
   app.post('/api/donors', async (req, res) => {
@@ -68,12 +72,13 @@ export function buildApp(store: any = new DemoStore(), bus = new EventBus()) {
         details: [],
       });
     }
+    const fullDoc = resolveDonorDocument(input);
     const donor = {
       ...input,
       id: crypto.randomUUID(),
-      documentMasked: '*** *** ' + String(input.document || '0000').slice(-4),
+      document: fullDoc,
+      documentMasked: '*** *** ' + String(fullDoc || '0000').slice(-4),
     };
-    delete donor.document;
     if (store.addDonor) {
       await store.addDonor(donor);
     } else {

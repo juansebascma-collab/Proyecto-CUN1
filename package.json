@@ -1,8 +1,13 @@
 {
   "name": "hemored",
   "private": true,
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "pnpm --parallel --filter hemored-server --filter hemored-web dev",
+    "desktop": "electron .",
+    "app:native": "electron .",
+    "mobile": "pnpm --filter hemored-app start",
+    "mobile:build:apk": "pnpm --filter hemored-app build:apk",
     "test": "pnpm -r test",
     "test:mongo": "pnpm --filter hemored-server test:mongo",
     "build": "pnpm -r build"
@@ -10,6 +15,7 @@
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "electron": "^45.0.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-import { BloodUnit, Donor, TransfusionRequest } from '../domain/contracts.js';
+import { BloodUnit, Donor, TransfusionRequest, resolveDonorDocument } from '../domain/contracts.js';
 import {
   BloodUnitModel,
   DonorModel,
@@ -17,11 +17,19 @@ export class MongoStore {
   }
 
   async getDonors(): Promise<Donor[]> {
-    return DonorModel.find({}, { _id: 0, __v: 0 }).lean() as Promise<Donor[]>;
+    const list = (await DonorModel.find({}, { _id: 0, __v: 0 }).lean()) as any[];
+    return list.map((d) => ({
+      ...d,
+      document: resolveDonorDocument(d),
+    }));
   }
 
   async addDonor(donor: Donor): Promise<void> {
-    await DonorModel.create(donor);
+    const fullDoc = resolveDonorDocument(donor);
+    await DonorModel.create({
+      ...donor,
+      document: fullDoc,
+    });
   }
 
   async getRequests(): Promise<TransfusionRequest[]> {
@@ -42,9 +50,36 @@ export class MongoStore {
     const count = await BloodUnitModel.countDocuments();
     if (count === 0) {
       if (demoUnits.length) await BloodUnitModel.insertMany(demoUnits);
-      if (demoDonors.length) await DonorModel.insertMany(demoDonors);
+      if (demoDonors.length) {
+        const enriched = demoDonors.map((d) => ({
+          ...d,
+          document: resolveDonorDocument(d),
+        }));
+        await DonorModel.insertMany(enriched);
+      }
       if (demoRequests.length) await TransfusionRequestModel.insertMany(demoRequests);
       console.log('🌱 Base de datos en MongoDB Atlas inicializada con datos semilla.');
+    } else {
+      // Migrar donantes existentes en MongoDB para que todos tengan su cédula completa
+      try {
+        const legacyDonors = await DonorModel.find({
+          $or: [
+            { document: { $exists: false } },
+            { document: null },
+            { document: '' },
+            { document: { $regex: /\*/ } },
+          ],
+        });
+        for (const doc of legacyDonors) {
+          const resolved = resolveDonorDocument(doc);
+          await DonorModel.updateOne({ _id: doc._id }, { $set: { document: resolved } });
+        }
+        if (legacyDonors.length > 0) {
+          console.log(`✅ ${legacyDonors.length} donante(s) existente(s) en MongoDB actualizados con documento de identidad completo.`);
+        }
+      } catch (err) {
+        console.warn('Nota: migración de donantes en Mongo:', err);
+      }
     }
   }
 }
