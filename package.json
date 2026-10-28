@@ -7,7 +7,9 @@
     "desktop": "electron .",
     "app:native": "electron .",
     "mobile": "pnpm --filter hemored-app start",
+    "mobile:login": "pnpm --filter hemored-app exec eas login",
     "mobile:build:apk": "pnpm --filter hemored-app build:apk",
+    "mobile:build:playstore": "pnpm --filter hemored-app build:aab",
     "test": "pnpm -r test",
     "test:mongo": "pnpm --filter hemored-server test:mongo",
     "build": "pnpm -r build"

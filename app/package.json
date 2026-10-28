@@ -1,1 +1,35 @@
-{"name":"hemored-app","private":true,"main":"expo-router/entry","scripts":{"start":"expo start","web":"expo start --web","android":"expo start --android","ios":"expo start --ios","test":"node --import tsx --test src/**/*.test.ts","build":"expo export --platform web","build:apk":"eas build --platform android --profile preview","build:aab":"eas build --platform android --profile production"},"dependencies":{"@expo/vector-icons":"^14.1.0","expo":"^53.0.0","expo-router":"^5.0.0","query-string":"^9.1.1","react":"19.3.0","react-dom":"19.3.0","react-native":"0.79.2","react-native-web":"^0.20.0"},"devDependencies":{"@types/react":"^19.0.0","tsx":"^4.19.2","typescript":"^5.9.3"}}
+{
+  "name": "hemored-app",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "web": "expo start --web",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "build": "expo export --platform web",
+    "build:apk": "eas build --platform android --profile preview",
+    "build:aab": "eas build --platform android --profile production"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^14.1.0",
+    "expo": "^53.0.0",
+    "expo-constants": "~17.1.8",
+    "expo-font": "~13.3.2",
+    "expo-linking": "~58.0.13",
+    "expo-router": "^5.0.0",
+    "query-string": "^9.1.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.79.2",
+    "react-native-safe-area-context": "5.10.1",
+    "react-native-screens": "4.30.0",
+    "react-native-web": "^0.20.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  }
+}
